@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+import time
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Type
@@ -15,13 +16,12 @@ from rich.tree import Tree
 from textual import events
 from textual.app import App, ComposeResult, CSSPathType
 from textual.containers import Container, Horizontal, Vertical
+from textual.css.query import NoMatches
 from textual.driver import Driver
 from textual.reactive import reactive
 from textual.screen import Screen
-from textual.widgets import Checkbox, DataTable, Footer, Header, Label, Static
 from textual.widget import Widget
-from textual.css.query import NoMatches
-import time
+from textual.widgets import Checkbox, DataTable, Footer, Header, Label, Static
 
 from nomad import NomadCluster
 
@@ -29,7 +29,6 @@ logger = logging.getLogger()
 
 
 class NomadJobsWidget(DataTable):
-
     def on_mount(self) -> None:
         self.add_column("Name")
         self.add_column("Status")
@@ -59,14 +58,19 @@ class NomadJobsWidget(DataTable):
                 else:
                     deployment = Text(job.deployment, style="dark_orange3")
 
-                if job.type == 'system':
+                if job.type == "system":
                     tasks.add(Text(f"{task_name} ({task.running})"))
                 else:
                     style = "green"
                     if task.running != task.expected:
                         style = "red"
-                    tasks.add(Text(f"{task_name} ({task.running} / {task.expected})", style=style))
-            
+                    tasks.add(
+                        Text(
+                            f"{task_name} ({task.running} / {task.expected})",
+                            style=style,
+                        )
+                    )
+
             self.add_row(
                 name,
                 job.status,
@@ -81,6 +85,7 @@ class Status(Widget):
     def compose(self) -> None:
         yield Static("Cluster URL:", id="cluster")
         yield Static("Last refresh took", id="stats")
+
 
 class Filter(Screen):
     """Display filters"""
@@ -121,7 +126,6 @@ class NomadMonitor(Screen):
         self.query_one("#cluster").update(f"Nomad URL: {self.app.cluster.url}")
         elapsed = 3.33
         self.query_one("#stats").update(f"Last refresh took: {elapsed:2.3}s")
-
 
     def compose(self) -> ComposeResult:
         yield Header()
