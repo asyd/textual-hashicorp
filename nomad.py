@@ -21,7 +21,7 @@ class NomadJob:
     name: str
     status: str
     type: str
-    tasks: dict = field(default_factory=dict)
+    tasks: dict[str, NomadTask] = field(default_factory=dict)
     deployment: str = "unknown"
 
 

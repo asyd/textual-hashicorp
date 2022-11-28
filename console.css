@@ -1,5 +1,12 @@
+Status {
+  dock: bottom;
+  background: $accent;
+  height: 2;
+  color: $text;
+}
+
 #jobs {
-  height: 100%;
+  height: auto;
 }
 
 /* #filter .label {
