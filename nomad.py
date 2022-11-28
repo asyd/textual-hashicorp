@@ -1,10 +1,11 @@
 import logging
 import os
-from dataclasses import dataclass, InitVar, field
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import InitVar, dataclass, field
+
 import certifi
 import requests
-import time
 from textual import log
 
 logger = logging.getLogger("nomad")
@@ -21,7 +22,7 @@ class NomadJob:
     name: str
     status: str
     type: str
-    tasks: dict = field(default_factory=dict)
+    tasks: dict[str, NomadTask] = field(default_factory=dict)
     deployment: str = "unknown"
 
 
@@ -56,9 +57,11 @@ class NomadCluster:
         self.poolexecutor = ThreadPoolExecutor(max_workers=10)
         self.session = requests.session()
         if self.token:
-            self.session.headers.update({
-                "X-Nomad-Token": self.token,
-            })
+            self.session.headers.update(
+                {
+                    "X-Nomad-Token": self.token,
+                }
+            )
         if self.ca:
             self.session.verify = self.ca
         if self.client_cert and self.client_key:
@@ -66,7 +69,7 @@ class NomadCluster:
 
     def _request(self, url: str, method: str = "get") -> requests.Response:
         started = time.monotonic()
-        url = url.lstrip('/')
+        url = url.lstrip("/")
         url = f"{self.url}/v{self.api_version}/{url}?namespace={self.namespace}&stale=true"
         r = self.session.request(method, url)
         elapsed = time.monotonic() - started
@@ -75,35 +78,33 @@ class NomadCluster:
 
     def refresh_jobs(self):
         for job in self._request("/jobs").json():
-            name = job['Name']
+            name = job["Name"]
             tasks = {}
-            for task, tasks_details in sorted(job['JobSummary']['Summary'].items()):
-                tasks[task] = NomadTask(
-                        expected = 0,
-                        running = tasks_details['Running']
-                    )
+            for task, tasks_details in sorted(job["JobSummary"]["Summary"].items()):
+                tasks[task] = NomadTask(expected=0, running=tasks_details["Running"])
             self.jobs[name] = NomadJob(
                 name=name,
-                status=job['Status'],
-                type=job['Type'],
+                status=job["Status"],
+                type=job["Type"],
                 tasks=tasks,
-                deployment='unknown',
+                deployment="unknown",
             )
         self.refresh_deployments()
         self.refresh_scales()
 
     def refresh_scales(self):
-        futures = {self.poolexecutor.submit(self._request, f"/job/{name}/scale"): name for name in self.jobs.keys()}
+        futures = {
+            self.poolexecutor.submit(self._request, f"/job/{name}/scale"): name
+            for name in self.jobs.keys()
+        }
         for future in as_completed(futures):
             name = futures[future]
-            for task, details in future.result().json()['TaskGroups'].items():
-                self.jobs[name].tasks[task].expected = details['Desired']
-                self.jobs[name].tasks[task].running = details['Running']
+            for task, details in future.result().json()["TaskGroups"].items():
+                self.jobs[name].tasks[task].expected = details["Desired"]
+                self.jobs[name].tasks[task].running = details["Running"]
 
     def refresh_deployments(self):
-        deployments = {
-            k["JobID"]: k for k in self._request("/deployments").json()
-        }
+        deployments = {k["JobID"]: k for k in self._request("/deployments").json()}
         for job in self.jobs.keys():
             try:
                 self.jobs[job].deployment = deployments[job]["Status"]

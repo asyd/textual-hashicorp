@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+import time
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Type
@@ -15,9 +16,11 @@ from rich.tree import Tree
 from textual import events
 from textual.app import App, ComposeResult, CSSPathType
 from textual.containers import Container, Horizontal, Vertical
+from textual.css.query import NoMatches
 from textual.driver import Driver
 from textual.reactive import reactive
 from textual.screen import Screen
+from textual.widget import Widget
 from textual.widgets import Checkbox, DataTable, Footer, Header, Label, Static
 
 from nomad import NomadCluster
@@ -26,7 +29,6 @@ logger = logging.getLogger()
 
 
 class NomadJobsWidget(DataTable):
-
     def on_mount(self) -> None:
         self.add_column("Name")
         self.add_column("Status")
@@ -38,25 +40,36 @@ class NomadJobsWidget(DataTable):
 
     def update_jobs(self) -> None:
         self.clear()
+        started = time.monotonic()
         self.app.cluster.refresh_jobs()
+        elapsed = time.monotonic() - started
+        try:
+            self.screen.query_one("#stats").update(f"Last refresh took: {elapsed:2.3}s")
+        except NoMatches:
+            pass
         for name, job in self.app.cluster.jobs.items():
             tasks_height = len(job.tasks)
             tasks = Tree("Tasks", hide_root=True)
             for task_name, task in job.tasks.items():
-                if job.type == 'system':
+                if job.deployment == "successful":
+                    deployment = Text(job.deployment, style="green")
+                elif job.deployment == "failed":
+                    deployment = Text(job.deployment, style="red")
+                else:
+                    deployment = Text(job.deployment, style="dark_orange3")
+
+                if job.type == "system":
                     tasks.add(Text(f"{task_name} ({task.running})"))
                 else:
                     style = "green"
                     if task.running != task.expected:
                         style = "red"
-                    tasks.add(Text(f"{task_name} ({task.running} / {task.expected})", style=style))
-            
-            if job.deployment == "successful":
-                deployment = Text(job.deployment, style="green")
-            elif job.deployment == "failed":
-                deployment = Text(job.deployment, style="red")
-            else:
-                deployment = Text(job.deployment, style="dark_orange3")
+                    tasks.add(
+                        Text(
+                            f"{task_name} ({task.running} / {task.expected})",
+                            style=style,
+                        )
+                    )
 
             self.add_row(
                 name,
@@ -67,26 +80,11 @@ class NomadJobsWidget(DataTable):
                 height=tasks_height,
             )
 
-        # for job in nomad_get_jobs(self.app.cluster, job_type="service"):
-        #     tasks_height = len(job.tasks)
-        #     tasks = Tree("Tasks", hide_root=True)
-        #     for task in job.tasks:
-        #         tasks.add(f"{task.name} ({task.running} / {task.expected})")
 
-        #     if job.deployment == "successful":
-        #         deployment = Text("successful", style="green")
-        #     elif job.deployment == "failed":
-        #         deployment = Text("failed", style="red")
-        #     else:
-        #         deployment = Text(job.deployment, style="#FF7F50")
-        #     self.add_row(
-        #         job.name,
-        #         job.status,
-        #         job.type,
-        #         deployment,
-        #         tasks,
-        #         height=tasks_height,
-        #     )
+class Status(Widget):
+    def compose(self) -> None:
+        yield Static("Cluster URL:", id="cluster")
+        yield Static("Last refresh took", id="stats")
 
 
 class Filter(Screen):
@@ -125,13 +123,16 @@ class NomadMonitor(Screen):
     # Force focus on job list
     def on_mount(self) -> None:
         self.set_focus(self.query_one("#jobs"))
+        self.query_one("#cluster").update(f"Nomad URL: {self.app.cluster.url}")
+        elapsed = 3.33
+        self.query_one("#stats").update(f"Last refresh took: {elapsed:2.3}s")
 
     def compose(self) -> ComposeResult:
         yield Header()
         yield Container(
             NomadJobsWidget(id="jobs"),
+            Status(),
         )
-        # yield Container(id="status")
         yield Footer()
 
 
