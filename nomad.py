@@ -46,7 +46,7 @@ class NomadCluster:
             url=os.environ["NOMAD_ADDR"].rstrip("/"),
             namespace=os.getenv("NOMAD_NAMESPACE", "default"),
             client_cert=os.getenv("NOMAD_CLIENT_CERT", None),
-            client_key=os.getenv("NOMAD_CLIENT_CERT", None),
+            client_key=os.getenv("NOMAD_CLIENT_KEY", None),
             ca=os.getenv("NOMAD_CACERT", None),
             token=os.getenv("NOMAD_TOKEN", None),
             jobs=dict(),
