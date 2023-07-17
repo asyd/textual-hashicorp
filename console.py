@@ -2,26 +2,16 @@
 
 import argparse
 import logging
-import os
 import time
-from dataclasses import dataclass, field
-from functools import lru_cache
-from typing import Type
 
-import certifi
-import requests
-from rich.rule import Rule
 from rich.text import Text
 from rich.tree import Tree
-from textual import events
-from textual.app import App, ComposeResult, CSSPathType
-from textual.containers import Container, Horizontal, Vertical
+from textual.app import App, ComposeResult
+from textual.containers import Container
 from textual.css.query import NoMatches
-from textual.driver import Driver
-from textual.reactive import reactive
 from textual.screen import Screen
 from textual.widget import Widget
-from textual.widgets import Checkbox, DataTable, Footer, Header, Label, Static
+from textual.widgets import  DataTable, Footer, Header, Static
 
 from nomad import NomadCluster
 
@@ -101,16 +91,9 @@ class Filter(Screen):
 
     BINDINGS = [("escape", "app.pop_screen", "close")]
 
-    def __init__(
-        self, name: str | None = None, id: str | None = None, classes: str | None = None
-    ) -> None:
-        super().__init__(id="filter")
-
     def compose(self) -> ComposeResult:
         yield Static("running")
-        yield Checkbox(id="job_running")
         yield Static("dead")
-        yield Checkbox(id="job_dead")
         yield Footer()
 
 
@@ -124,8 +107,6 @@ class NomadMonitor(Screen):
     def on_mount(self) -> None:
         self.set_focus(self.query_one("#jobs"))
         self.query_one("#cluster").update(f"Nomad URL: {self.app.cluster.url}")
-        elapsed = 3.33
-        self.query_one("#stats").update(f"Last refresh took: {elapsed:2.3}s")
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -146,6 +127,7 @@ class App(App):
     }
 
     def on_mount(self) -> None:
+        self.capture_mouse(None)
         self.cluster: NomadCluster = NomadCluster.from_environ()
         self.push_screen("main")
 

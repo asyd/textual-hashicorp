@@ -6,6 +6,7 @@ from dataclasses import InitVar, dataclass, field
 
 import certifi
 import requests
+import requests.adapters
 from textual import log
 
 logger = logging.getLogger("nomad")
@@ -54,8 +55,13 @@ class NomadCluster:
 
     def __post_init__(self, attr):
         # 10 is the requests.session pool
-        self.poolexecutor = ThreadPoolExecutor(max_workers=10)
+        self.poolexecutor = ThreadPoolExecutor(max_workers=32)
+
         self.session = requests.session()
+        custom_adapter = requests.adapters.HTTPAdapter(pool_maxsize=32)
+        self.session.mount('https://', custom_adapter)
+
+        # Prepare request defaults
         if self.token:
             self.session.headers.update(
                 {
