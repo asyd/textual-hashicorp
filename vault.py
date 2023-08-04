@@ -93,6 +93,13 @@ class KVEngineTab(TabPane):
         if str(event.node.label[-1]) == '/':
             self._list_secrets(event.node, self._get_node_fullpath(event.node))
             event.node.expand_all()
+        else:
+            # secrets = self.app.server.get_secret(self._get_node_fullpath(event.node))
+            details_panel = self.query_one("#details") # type: DataTable
+            details_panel.add_row(
+                'test',
+                'test'
+            )
 
 class VaultApp(App):
     CSS_PATH = "vault.css"
