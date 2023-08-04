@@ -2,7 +2,7 @@
 
 from textual import log
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, Tree, TabbedContent, Static, TabPane
+from textual.widgets import Header, Footer, Tree, TabbedContent, Static, TabPane, DataTable
 from textual.widgets.tree import TreeNode
 from textual.logging import TextualHandler
 
@@ -65,6 +65,7 @@ class KVEngineTab(TabPane):
         tree.show_root = False
         tree.root.expand()
         yield tree
+        yield DataTable(id="details")
 
     def _get_node_fullpath(self, node: TreeNode) -> str:
         # Build full path from current node to engine mountpoint
