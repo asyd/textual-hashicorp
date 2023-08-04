@@ -50,10 +50,12 @@ class VaultServer:
 
 
     def list_secrets(self, mount, path="/"):
-        # Ensure path doesn't begin with /
-        log(f"listing secrets in {path}")
         data = self._request(f"{mount}/metadata/{path.lstrip('/')}", method="LIST")
         return data['keys']
+
+
+    def get_secret(self, mount, path):
+        return self._request(f"{mount}/data/{path}")['data']['data']
 
 
 class SecretTree(Tree):
@@ -67,6 +69,14 @@ class KVEngineTab(TabPane):
         yield tree
         yield DataTable(id="details")
 
+    def on_mount(self) -> ComposeResult:
+        tree = self.query_one("#secrets") # type: Tree
+        self._list_secrets(tree.root)
+        details = self.query_one("#details") # type: DataTable
+        details.add_column('key')
+        details.add_column('secret')
+        details.refresh()
+
     def _get_node_fullpath(self, node: TreeNode) -> str:
         # Build full path from current node to engine mountpoint
         path = str(node.label)
@@ -78,13 +88,11 @@ class KVEngineTab(TabPane):
         for secret in self.app.server.list_secrets("secret", path):
             parent_node.add_leaf(secret)
 
-    def on_mount(self) -> ComposeResult:
-        tree = self.query_one("#secrets") # type: Tree
-        self._list_secrets(tree.root)
-
     def on_tree_node_selected(self, event: Tree.NodeSelected):
-        self._list_secrets(event.node, self._get_node_fullpath(event.node))
-        event.node.expand_all()
+        # is current label a leaf?
+        if str(event.node.label[-1]) == '/':
+            self._list_secrets(event.node, self._get_node_fullpath(event.node))
+            event.node.expand_all()
 
 class VaultApp(App):
     CSS_PATH = "vault.css"
