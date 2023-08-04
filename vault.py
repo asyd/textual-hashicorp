@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+from rich.text import TextType
+from textual.widget import Widget
+from backends import VaultServer
 from textual import log
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer, Tree, TabbedContent, Static, TabPane, DataTable
@@ -14,56 +17,17 @@ import certifi
 
 logger = logging.getLogger(__name__)
 
-
-class VaultServerException(BaseException):
-    pass
-
-
-class VaultServer:
-    def __init__(self, api_version: str = "v1"):
-        self.base_url = os.getenv('VAULT_ADDR')
-        self.token = os.getenv('VAULT_TOKEN')
-        self.cacert = os.getenv('VAULT_CACERT', None)
-        self.api_version = api_version
-        self.session = requests.session()
-        self.session.headers.update({"X-Vault-Token": self.token})
-
-        if self.cacert is not None:
-            self.session.verify = self.cacert
-
-    def _request(self, url: str, method="GET"):
-        full_url = f"{self.base_url}/{self.api_version}/{url.lstrip('/')}"
-        req = self.session.request(
-            method=method,
-            url=full_url
-        )
-        if not req.ok:
-            logger.warning("Following request %s failed with %s %s", full_url, req.status_code, req.reason)
-
-        # TODO: parse errors and warnings
-        return req.json()['data']
-
-    def mounts(self):
-        # Remove system backends
-        data = self._request('sys/mounts')
-        return {x: {"type": v['type']} for x, v in data.items() if v['type'] not in ['system', 'cubbyhole', 'identity']}
-
-
-    def list_secrets(self, mount, path="/"):
-        data = self._request(f"{mount}/metadata/{path.lstrip('/')}", method="LIST")
-        return data['keys']
-
-
-    def get_secret(self, mount, path):
-        return self._request(f"{mount}/data/{path}")['data']['data']
-
-
 class SecretTree(Tree):
     pass
 
 class KVEngineTab(TabPane):
+    def __init__(self, title: TextType, mountpoint: str, *children: Widget, name: str | None = None, id: str | None = None, classes: str | None = None, disabled: bool = False):
+        self.mountpoint = mountpoint
+        super().__init__(title, *children, name=name, id=id, classes=classes, disabled=disabled)
+
+
     def compose(self) -> ComposeResult:
-        tree = SecretTree("Secrets", id="secrets")
+        tree = SecretTree(f"Secrets in {self.mountpoint}", id="secrets")
         tree.show_root = False
         tree.root.expand()
         yield tree
@@ -72,10 +36,6 @@ class KVEngineTab(TabPane):
     def on_mount(self) -> ComposeResult:
         tree = self.query_one("#secrets") # type: Tree
         self._list_secrets(tree.root)
-        details = self.query_one("#details") # type: DataTable
-        details.add_column('key')
-        details.add_column('secret')
-        details.refresh()
 
     def _get_node_fullpath(self, node: TreeNode) -> str:
         # Build full path from current node to engine mountpoint
@@ -85,21 +45,24 @@ class KVEngineTab(TabPane):
         return path
 
     def _list_secrets(self, parent_node: TreeNode, path: str = "/"):
-        for secret in self.app.server.list_secrets("secret", path):
+        for secret in self.app.server.list_secrets(self.mountpoint, path):
             parent_node.add_leaf(secret)
 
     def on_tree_node_selected(self, event: Tree.NodeSelected):
         # is current label a leaf?
         if str(event.node.label[-1]) == '/':
+            # yes, so add children
+            event.node.remove_children()
             self._list_secrets(event.node, self._get_node_fullpath(event.node))
             event.node.expand_all()
         else:
-            # secrets = self.app.server.get_secret(self._get_node_fullpath(event.node))
+            # no, display secret content
+            secrets = self.app.server.get_secret(self.mountpoint, self._get_node_fullpath(event.node))
             details_panel = self.query_one("#details") # type: DataTable
-            details_panel.add_row(
-                'test',
-                'test'
-            )
+            details_panel.clear(columns=True)
+            details_panel.add_columns('key', 'secret')
+            for k, v in secrets.items():
+                details_panel.add_row(k, v)
 
 class VaultApp(App):
     CSS_PATH = "vault.css"
@@ -117,7 +80,7 @@ class VaultApp(App):
         tabs = self.query_one("#tabs")  # type: TabbedContent
         for name, properties in self.server.mounts().items():
             if properties['type'] in ['kv']:
-                tabs.add_pane(KVEngineTab(name))
+                tabs.add_pane(KVEngineTab(name, name))
             else:
                 tabs.add_pane(TabPane(name))
 
