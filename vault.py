@@ -67,6 +67,7 @@ class KVEngineTab(TabPane):
         yield tree
 
     def _get_node_fullpath(self, node: TreeNode) -> str:
+        # Build full path from current node to engine mountpoint
         path = str(node.label)
         while (node := node.parent).is_root is False:
             path = f"{str(node.label)}{path}"
@@ -81,10 +82,7 @@ class KVEngineTab(TabPane):
         self._list_secrets(tree.root)
 
     def on_tree_node_selected(self, event: Tree.NodeSelected):
-        # log(self._get_node_fullpath(event.node))
         self._list_secrets(event.node, self._get_node_fullpath(event.node))
-        # log(event.node.label)
-        # # event.node.add_leaf("test")
         event.node.expand_all()
 
 class VaultApp(App):
