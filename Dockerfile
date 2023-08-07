@@ -1,4 +1,4 @@
-FROM python
+FROM python:3.11.4-slim
 
 RUN pip install poetry
 
