@@ -1,0 +1,2 @@
+FROM hashicorp/vault:1.14
+RUN apk add -U curl

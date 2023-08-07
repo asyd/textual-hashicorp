@@ -4,6 +4,12 @@
 
 ## Demos
 
+### Vault
+
+[![asciicast](https://asciinema.org/a/wj4XoY4O2hKM2rTKWJkLC51Bh.svg)](https://asciinema.org/a/wj4XoY4O2hKM2rTKWJkLC51Bh)
+
+### Nomad
+
 # Installation
 
 ## Requirements
@@ -33,6 +39,16 @@ Following environment variables are supported:
 |-------------------|:-----------:|
 | VAULT_ADDR        |     ✅     |
 | VAULT_TOKEN       |     ✅     |
+
+## Launch demo
+
+```bash
+cd demo/vault
+docker compose up --build --detach --wait
+cd ../../
+export VAULT_ADDR=http://localhost:8200 VAULT_TOKEN=root
+poetry run python3 vault.py
+```
 
 ## Features
 

@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  vault:
+    build: 
+      context: .
+      dockerfile: Dockerfile.vault
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=root
+    cap_add:
+      - "IPC_LOCK"
+    ports:
+      - 8200:8200
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      test: ["CMD-SHELL", "curl -H 'X-Vault-Token: root' --fail http://localhost:8200/v1/sys/health || exit 1"]
+
+  vault_init:
+    build: 
+      context: .
+      dockerfile: Dockerfile.vault
+    depends_on:
+      - vault
+    volumes:
+      - ./init-vault.sh:/init-vault.sh
+    entrypoint: ["/init-vault.sh"]
