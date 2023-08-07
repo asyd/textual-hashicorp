@@ -50,6 +50,14 @@ export VAULT_ADDR=http://localhost:8200 VAULT_TOKEN=root
 poetry run python3 vault.py
 ```
 
+Or, using Docker:
+
+```bash
+docker build -t textual-hashicorp .
+docker run --rm -ti -e NOMAD_ADDR=... textual-hashicorp python nomad.py
+docker run --rm -ti -e VAULT_ADDR=... -e VAULT_TOKEN=... textual-hashicorp python vault.py
+```
+
 ## Features
 
 | Backend | Current status |
