@@ -1,0 +1,5 @@
+__pycache__
+.idea
+.ruff_cache
+.vscode
+tests

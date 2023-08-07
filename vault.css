@@ -1,0 +1,12 @@
+#secrets {
+  height: auto;
+}
+
+#details {
+  height: auto;
+  width: 50%;
+}
+
+KVEngineTab {
+  layout: horizontal;
+}

@@ -1,0 +1,23 @@
+Status {
+  dock: bottom;
+  background: $accent;
+  height: 2;
+  color: $text;
+}
+
+#jobs {
+  height: auto;
+}
+
+/* #filter .label {
+  height: 3;
+}
+
+#custom-design {
+  background: darkslategrey;
+}
+
+#custom-design > .checkbox--switch {
+  color: dodgerblue;
+  background: darkslateblue;
+} */
