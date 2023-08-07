@@ -991,6 +991,17 @@ files = [
 plugins = ["importlib-metadata"]
 
 [[package]]
+name = "pyperclip"
+version = "1.8.2"
+description = "A cross-platform clipboard module for Python. (Only handles plain text for now.)"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyperclip-1.8.2.tar.gz", hash = "sha256:105254a8b04934f0bc84e9c24eb360a591aaf6535c9def5f29d92af107a9bf57"},
+]
+
+[[package]]
 name = "requests"
 version = "2.31.0"
 description = "Python HTTP for Humans."
@@ -1319,4 +1330,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "bdf92c9694874c3f9ad34f74db9abe5573cd64c124e356dec75c85499d49fd2a"
+content-hash = "4b3575ac02f6ef1b8c8330f8f1b3ea1a2401c3ba77d01aa34250937528ab5f2a"
